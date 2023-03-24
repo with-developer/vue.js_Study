@@ -8,13 +8,76 @@
 
 <body>
     <div id="app">
-        {{ message }}
         <br>
-        <button v-on:click="toggleComponent">컴포넌트 {{ isComponentRegistered ? '해제' : '등록' }}</button>
+        {{ start }}
+        <br><br>
+        <hr><br>
+        <button v-on:click="toggleComponent">전역 컴포넌트 {{ isComponentRegistered ? '해제' : '등록' }}</button>
         <my-component v-if="isComponentRegistered"></my-component>
+
+        <br>
+        <hr><br>
+        <my-component1></my-component1>
+        <my-component2></my-component2>
+        <br>
+        <hr><br>
+        <child-component v-bind:propsdata="message"></child-component>
+        <br>
+        <hr><br>
+        <child-component2 v-on:show-log="printTextWithTime"></child-component2>
+        <br>
+        <hr><br>
+        <child-component3></child-component3>
+
     </div>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
     <script>
+
+        Vue.component('child-component', {
+            props: ['propsdata'],
+            template: '<p>{{ propsdata }}</p>',
+        });
+
+        Vue.component('child-component2', {
+            template: '<button v-on:click="showLog">show</button>',
+            methods: {
+                showLog: function () {
+                    this.$emit('show-log');
+                }
+            }
+        });
+
+        var eventBus = new Vue();
+        Vue.component('child-component3', {
+            template: '<div>하위 컴포넌트 영역입니다.<button v-on:click="showLog">show</button></div>',
+            methods: {
+                showLog: function () {
+                    eventBus.$emit('triggerEventBus', 100);
+                }
+            }
+        });
+
+        var cmp1 = {
+            template: '<div>첫 번째 지역 컴포넌트: {{ cmp1Data }}</div>',
+            data: function () {
+                return {
+                    cmp1Data: 100
+                }
+            }
+        };
+
+        var cmp2 = {
+            template: '<div>두 번째 지역 컴포넌트: {{ cmp2Data }}</div>',
+            data: function () {
+                return {
+                    cmp2Data: cmp1.data.cmp1Data
+                }
+            }
+        };
+
+
+
+
         Vue.component('my-component', {
             template: '<div>전역 컴포넌트가 등록되었습니다!</div>'
         });
@@ -22,13 +85,33 @@
         new Vue({
             el: '#app',
             data: {
-                message: '안녕하세요!',
-                isComponentRegistered: false
+                start: 'Hello vue.js world',
+                message: 'passed from Parent Component!',
+                isComponentRegistered: false,
+            },
+            components: {
+                'my-component1': cmp1,
+                'my-component2': cmp2
             },
             methods: {
+                printText: function () {
+                    console.log("received an event");
+                },
+
+                printTextWithTime: function () {
+                    const currentTime = new Date().toLocaleTimeString();
+                    console.log(`received an event at ${currentTime}`);
+                },
+
+
                 toggleComponent: function () {
                     this.isComponentRegistered = !this.isComponentRegistered;
                 }
+            },
+            create: function () {
+                eventBus.$on('triggerEventBus', function (value) {
+                    console.log("이벤트를 전달받음. 전달받은 값: ", value);
+                });
             }
         });
     </script>
